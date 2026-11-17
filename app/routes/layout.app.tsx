@@ -3,6 +3,13 @@ import type { Route } from "./+types/layout.app";
 import { Sidebar } from "~/components/sidebar";
 import { DevUI } from "~/components/dev-ui";
 import { Toaster } from "sonner";
+// PROTOTYPE (issue #8) — throwaway
+import { getPrototypeNotifications } from "~/components/notifications-prototype/mock.server";
+import {
+  NotificationsPrototype,
+  NotificationsPrototypeTop,
+  useProtoNotifications,
+} from "~/components/notifications-prototype/variants";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
 import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
 import { eq, and, or, sql, desc } from "drizzle-orm";
@@ -213,6 +220,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     countryTierInfo,
     countries: COUNTRIES,
     isTeamAdmin: currentUserId ? isTeamAdmin(currentUserId) : false,
+    notificationsPrototype: getPrototypeNotifications(
+      currentUser ?? null,
+      currentUserId ? isTeamAdmin(currentUserId) : false
+    ),
   };
 }
 
@@ -225,7 +236,13 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     countryTierInfo,
     countries,
     isTeamAdmin: userIsTeamAdmin,
+    notificationsPrototype,
   } = loaderData;
+  const protoStore = useProtoNotifications(
+    notificationsPrototype.initial,
+    notificationsPrototype.pool,
+    currentUser?.id
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -235,6 +252,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         isTeamAdmin={userIsTeamAdmin}
       />
       <main className="flex-1 overflow-y-auto">
+        <NotificationsPrototypeTop store={protoStore} />
         <Outlet />
       </main>
       <DevUI
@@ -244,6 +262,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         countryTierInfo={countryTierInfo}
         countries={countries}
       />
+      <NotificationsPrototype store={protoStore} />
       <Toaster position="bottom-right" richColors closeButton />
     </div>
   );
